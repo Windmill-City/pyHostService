@@ -1,0 +1,10 @@
+[project]
+name = "pyHostService"
+version = "0.0.1"
+dependencies = [
+    "numpy",
+    "pycryptodomex",
+    "crcmod",
+    "pyserial",
+    "pyserial-asyncio",
+]

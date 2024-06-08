@@ -4,8 +4,8 @@ import numpy as np
 from serial_asyncio import create_serial_connection, SerialTransport
 from logging import Logger
 
-from .Logging import hexlify
-from . import Common
+from pyHostService.Logging import hexlify
+from pyHostService import Common
 
 # 最大未处理帧数量
 UNHANDLED_FRAME_SIZE_MAX = 128

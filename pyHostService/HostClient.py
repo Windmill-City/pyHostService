@@ -3,10 +3,10 @@ from typing import AsyncGenerator
 from logging import Logger
 from asyncio import Lock
 
-from .Logging import hexlify, LogMask
-from .Cipher import Cipher
-from . import Protocol
-from .Common import Command, ErrorCode, MemoryAccess
+from pyHostService.Logging import hexlify, LogMask
+from pyHostService.Cipher import Cipher
+from pyHostService import Protocol
+from pyHostService.Common import Command, ErrorCode, MemoryAccess
 
 
 class Client:

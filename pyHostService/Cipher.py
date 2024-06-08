@@ -1,8 +1,8 @@
 from Cryptodome.Cipher import AES
 from logging import Logger
 
-from .Logging import hexlify
-from . import Common
+from pyHostService.Logging import hexlify
+from pyHostService import Common
 
 
 class Cipher:

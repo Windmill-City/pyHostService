@@ -1,5 +1,5 @@
-from .Cipher import Cipher
-from .Common import Command, ErrorCode, MemoryAccess, RangeAccess
-from .HostClient import Client
-from .Logging import LogMask, hexlify
-from .Protocol import create_port, Port
+from pyHostService.Cipher import Cipher
+from pyHostService.Common import Command, ErrorCode, MemoryAccess, RangeAccess
+from pyHostService.HostClient import Client
+from pyHostService.Logging import LogMask, hexlify
+from pyHostService.Protocol import create_port, Port

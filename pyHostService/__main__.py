@@ -1,6 +1,6 @@
 from gooey import Gooey, GooeyParser
 
-from . import Client
+from pyHostService import Client
 
 
 @Gooey

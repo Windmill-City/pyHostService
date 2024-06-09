@@ -36,6 +36,7 @@ async def upload(args):
     data = np.fromfile(args.firmware, dtype=np.uint8)
     # 上传固件
     uploaded = 0
+    print(f'progress: {uploaded/len(data) * 100:.2f}%')
     async for size in client.set_mem('flash.app', data, encrypt=True):
         uploaded += size
         print(f'progress: {uploaded/len(data) * 100:.2f}%')

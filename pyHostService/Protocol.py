@@ -135,7 +135,10 @@ class Port(asyncio.Protocol):
                 self._ref -= 1
             if self._ref == 0 and not self._serial.closed:
                 del Port.Ports[self._port]
-                self._serial.flush()
+                try:
+                    self._serial.flush()
+                except IOError:
+                    pass
                 self._serial.close()
 
     def get_lock(self) -> asyncio.Lock:

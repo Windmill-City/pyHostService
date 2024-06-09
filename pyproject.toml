@@ -6,8 +6,7 @@ dependencies = [
     "pycryptodomex",
     "crcmod",
     "pyserial",
-    "pyserial-asyncio",
     "gooey",
 ]
 [project.scripts]
-pyHostService = "pyHostService:main"
+pyhost = "pyHostService:main"

@@ -16,6 +16,7 @@ logger = logging.getLogger()
 
 async def upload(args):
     async def wait_for_boot():
+        logger.info('Waiting for Bootloader to startup...')
         while True:
             try:
                 client.mask()
@@ -39,6 +40,8 @@ async def upload(args):
         uploaded += size
         print(f'progress: {uploaded/len(data) * 100:.2f}%')
         sys.stdout.flush()
+    # 复位
+    await client.set_prop('reset', True, no_response=True)
     # 关闭串口
     await client.close()
 
@@ -70,7 +73,7 @@ async def cli():
 
 
 @Gooey(
-    target='pyHostService',
+    target='pyhost',
     clear_before_run=True,
     progress_regex=r"progress: (\d+.\d+)%",
 )

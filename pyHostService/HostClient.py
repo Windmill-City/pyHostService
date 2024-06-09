@@ -205,6 +205,7 @@ class Client:
             await self.send_request(Command.SET_PROPERTY, extra, encrypt)
             # 若无需接收响应则返回空数据
             if no_response:
+                self._client.info(f'End Request: Set Property[{name}]')
                 return bytes()
             # 接收响应
             extra = await self.recv_response(Command.SET_PROPERTY)

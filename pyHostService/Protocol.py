@@ -1,7 +1,7 @@
 import crcmod
 import asyncio
 import numpy as np
-from serial_asyncio import create_serial_connection, SerialTransport
+from serial import Serial
 from logging import Logger
 
 from pyHostService.Logging import hexlify
@@ -34,9 +34,6 @@ class Port(asyncio.Protocol):
             extra (bytes): 附加参数
         """
         async with self.get_lock():
-            # 检查端口是否正常
-            if self.is_closed():
-                raise IOError('Port closed!')
             # 使用 MSB 标识是否加密
             cmd = cmd if not tag else cmd | 0x80
             # 请求结构体
@@ -45,8 +42,8 @@ class Port(asyncio.Protocol):
             # 帧头校验
             checksum = np.uint16(crc16(head)).byteswap().tobytes()
             # 发送帧头
-            self._transport.write(head)
-            self._transport.write(checksum)
+            self._serial.write(head)
+            self._serial.write(checksum)
             self._logger.debug(f'Header: {hexlify(head)}, Checksum: {hexlify(checksum)}')
 
             # 数据长度为 0 则跳过发送
@@ -60,8 +57,8 @@ class Port(asyncio.Protocol):
             # 参数校验
             checksum = np.uint16(crc16(extra)).byteswap().tobytes()
             # 发送参数
-            self._transport.write(extra)
-            self._transport.write(checksum)
+            self._serial.write(extra)
+            self._serial.write(checksum)
             self._logger.debug(f'Extra: {hexlify(extra)}, Checksum: {hexlify(checksum)}')
 
     async def recv(self, address: np.uint8) -> tuple[np.uint8, np.uint8, bytes | None, bytes]:
@@ -136,18 +133,10 @@ class Port(asyncio.Protocol):
         async with self.get_lock():
             if self._ref > 0:
                 self._ref -= 1
-            if self._ref == 0:
-                if not self._closed:
-                    self._transport.close()
-                    await self._lost
-
-    def is_closed(self) -> bool:
-        """返回端口是否关闭
-
-        Returns:
-            bool: 是否关闭
-        """
-        return self._closed
+            if self._ref == 0 and not self._serial.closed:
+                del Port.Ports[self._port]
+                self._serial.flush()
+                self._serial.close()
 
     def get_lock(self) -> asyncio.Lock:
         """返回端口互斥锁
@@ -157,7 +146,7 @@ class Port(asyncio.Protocol):
         """
         return self._lock
 
-    def __init__(self, logger: Logger, port: str, loop: asyncio.AbstractEventLoop):
+    def __init__(self, logger: Logger, port: str, serial: Serial):
         """通信协议实现
 
         Args:
@@ -165,35 +154,14 @@ class Port(asyncio.Protocol):
             port (str): 端口名
             loop (asyncio.AbstractEventLoop): 事件循环
         """
-        self._logger = logger.getChild('Protocol')
+        self._logger = logger.getChild('Port')
         self._port = port
-        self._buffer = bytearray()
+        self._serial = serial
         self._unhandled_frames = list()
         self._lock = asyncio.Lock()
-
-        self._made = loop.create_future()  # 连接建立指示
-        self._lost = loop.create_future()  # 连接终止指示
-
         self._closed = False
         self._ref = 1  # 端口的引用数
-
-    def connection_made(self, transport) -> None:
-        self._transport: SerialTransport = transport
-        self._transport.pause_reading()
-        Port.Ports[self._port] = self
-        self._logger.info('Port Opened!')
-        self._made.set_result(True)
-
-    def connection_lost(self, _: Exception | None) -> None:
-        self._logger.info('Port Closed!')
-        self._closed = True
-        del Port.Ports[self._port]
-        self._lost.set_result(True)
-
-    def data_received(self, data: bytes) -> None:
-        self._buffer.extend(data)
-        self._transport.pause_reading()
-        self._rx.set_result(True)
+        Port.Ports[port] = self
 
     async def _read(self) -> int:
         """接收 1 字节数据
@@ -201,15 +169,12 @@ class Port(asyncio.Protocol):
         Returns:
             int: 1 字节数据
         """
-        # 检查端口是否正常
-        if self.is_closed():
-            raise IOError('Port closed!')
-        if len(self._buffer) == 0:
-            loop = asyncio.get_event_loop()
-            self._rx = loop.create_future()
-            self._transport.resume_reading()
-            await self._rx
-        return self._buffer.pop(0)
+        while True:
+            byte = self._serial.read()
+            if len(byte) == 1:
+                return byte[0]
+            else:
+                await asyncio.sleep(0)
 
     async def _sync(self) -> np.ndarray:
         """帧同步
@@ -239,25 +204,12 @@ async def create_port(logger: Logger, serial_port: str, baudrate=115200) -> Port
     Returns:
         Protocol: 通信端口实例
     """
-    def exception_handler(_, context: dict):
-        port = context.get('protocol', None)
-        if isinstance(port, Port):
-            logger.error(f'Port closed due to {context["exception"]}')
-        else:
-            raise context['exception']
-
     # 优先返回已有的实例
     port = Port.Ports.get(serial_port, None)
     if port is not None:
         port._ref += 1
         return port
-    # 创建新实例
-    loop = asyncio.get_event_loop()
-    # 处理端口关闭的异常
-    loop.set_exception_handler(exception_handler)
     # 创建端口
-    port = Port(logger, serial_port, loop)
-    await create_serial_connection(loop, lambda: port, serial_port, baudrate=baudrate)
-    # 等待端口建立
-    await port._made
+    serial = Serial(serial_port, baudrate=baudrate, timeout=0)
+    port = Port(logger, serial_port, serial)
     return port

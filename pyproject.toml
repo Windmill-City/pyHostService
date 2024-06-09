@@ -10,3 +10,4 @@ dependencies = [
 ]
 [project.scripts]
 pyhost = "pyHostService:main"
+pyhost-cli = "pyHostService:main_cli"

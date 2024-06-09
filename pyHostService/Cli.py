@@ -79,3 +79,6 @@ async def cli():
 )
 def main():
     asyncio.run(cli())
+
+def main_cli():
+    asyncio.run(cli())

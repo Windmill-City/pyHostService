@@ -25,6 +25,8 @@ class Client:
         self._block_size = 1024
         self._extra_size = 1024 + 2 + MemoryAccess.itemsize  # sizeof(PropertyId) = 2
 
+        self._port = None
+
     def open(self, name: str, baudrate: int) -> None:
         """打开端口
 

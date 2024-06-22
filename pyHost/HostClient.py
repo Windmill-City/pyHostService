@@ -5,7 +5,7 @@ from typing import AsyncGenerator
 from pyHost.Logging import hexlify, MaskableLogger
 from pyHost.Cipher import Cipher
 from pyHost import Protocol
-from pyHost.Types import Command, ErrorCode, MemoryAccess
+from pyHost.Types import Command, ErrorCode, MemoryAccess, RangeAccess
 
 
 class Client:
@@ -155,16 +155,49 @@ class Client:
         self._client.info(f'Echo answer: {hexlify(rep)}')
         return rep
 
-    async def set_prop(self, name: str, value: bytes, encrypt: bool = False) -> bytes:
+    async def set_range(self, name: str, min: np.number, max: np.number, encrypt=False) -> None:
+        """设置范围属性
+
+        Args:
+            name (str): 符号名
+            min (np.number): 下限
+            max (np.number): 上限
+            encrypt (bool, optional): 是否加密. Defaults to False.
+
+        Raises:
+            RuntimeError: 类型不兼容
+        """
+        # 数据类型转换
+        if not isinstance(min, np.number) or not isinstance(max, np.number):
+            raise RuntimeError(f'Incompatible value type: {type(min)},{type(max)}')
+        self.set_prop(name,
+                      np.uint8(RangeAccess.Range.value).tobytes()
+                      + min.tobytes()
+                      + max.tobytes(),
+                      encrypt)
+
+    async def get_range(self, name: str, access: RangeAccess, dtype: np.dtype, encrypt=False) -> tuple[np.number, np.number]:
+        """获取范围属性
+
+        Args:
+            name (str): 符号名
+            dtype (np.dtype): 数值类型
+            encrypt (bool, optional): 是否加密. Defaults to False.
+
+        Returns:
+            tuple[np.number, np.number]: 下限, 上限
+        """
+        id = self._get_id(name)
+        extra = self._get_prop(id, encrypt, np.uint8(access.value).tobytes())
+        return np.frombuffer(extra, dtype=[dtype, dtype])[0]
+
+    async def set_prop(self, name: str, value: bytes, encrypt: bool = False) -> None:
         """设置属性值
 
         Args:
             name (str): 符号名
             value (bytes): 属性值
             encrypt (bool, optional): 是否加密. 默认值: False.
-
-        Returns:
-            bytes: 属性值
         """
         # 数据类型转换
         if isinstance(value, bool):
@@ -178,9 +211,8 @@ class Client:
         # 获取属性 Id
         id = await self._get_id(name)
         # 获取属性值
-        value = self._set_prop(id, value, encrypt)
+        self._set_prop(id, value, encrypt)
         self._client.info(f'End Request: Set Prop[{name}]')
-        return value
 
     async def get_prop(self, name: str, encrypt: bool = False) -> bytes:
         """获取属性值
@@ -403,10 +435,9 @@ class Client:
         extra = await self.recv_response(Command.GET_PROPERTY)
         return extra
 
-    async def _set_prop(self, id: np.uint16, extra: bytes, encrypt: bool = False) -> bytes:
+    async def _set_prop(self, id: np.uint16, extra: bytes, encrypt: bool = False) -> None:
         await self.send_request(Command.SET_PROPERTY, np.uint16(id).tobytes() + extra, encrypt)
-        extra = await self.recv_response(Command.SET_PROPERTY)
-        return extra
+        await self.recv_response(Command.SET_PROPERTY)
 
     async def _get_size(self, id: np.uint16, encrypt: bool = False,) -> np.uint16:
         await self.send_request(Command.GET_SIZE, np.uint16(id).tobytes(), encrypt)

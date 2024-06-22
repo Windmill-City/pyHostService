@@ -1,13 +1,13 @@
 [project]
-name = "pyHostService"
+name = "pyHost"
 version = "0.0.1"
 dependencies = [
     "numpy",
     "pycryptodomex",
     "crcmod",
     "pyserial",
-    "gooey",
+    "pyside6",
 ]
 [project.scripts]
-pyhost = "pyHostService:main"
-pyhost-cli = "pyHostService:main_cli"
+pyhost = "pyHost:main"
+pyhost-cli = "pyHost:main_cli"

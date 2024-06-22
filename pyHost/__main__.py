@@ -1,4 +1,4 @@
-from pyHostService import Cli
+from pyHost import Cli
 import asyncio
 
 if __name__ == '__main__':

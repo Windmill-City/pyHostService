@@ -1,11 +1,42 @@
 import asyncio
+from logging import Logger
 import numpy as np
 from typing import AsyncGenerator
 
 from pyHost.Logging import hexlify, MaskableLogger
 from pyHost.Cipher import Cipher
 from pyHost import Protocol
-from pyHost.Types import Command, ErrorCode, MemoryAccess, RangeAccess
+from pyHost.Types import Command, ErrorCode, MemoryAccess, RangeAccess, LogLevel
+
+
+class ServerLogger:
+    def __init__(self, logger: Logger) -> None:
+        self._logger = logger
+
+    def log(self, extra: bytes) -> None:
+        if len(extra) == 0:
+            self._logger.warning(f'Empty log data!')
+            return
+        # 日志等级
+        level = extra[0:1]
+        try:
+            level = LogLevel(level)
+        except ValueError:
+            self._logger.warning(f'Invalid log level: {level}!')
+            return
+        # 日志内容
+        log = extra[1:]
+        match level:
+            case LogLevel.VERBOSE:
+                self._logger.debug(log)
+            case LogLevel.DEBUG:
+                self._logger.debug(log)
+            case LogLevel.INFO:
+                self._logger.info(log)
+            case LogLevel.WARNING:
+                self._logger.warning(log)
+            case LogLevel.ERROR:
+                self._logger.error(log)
 
 
 class Client:
@@ -15,6 +46,7 @@ class Client:
         self._logger = logger
         self._client = logger.getChild(f'Client[{address:x}]')
         self._server = logger.getChild(f'Server[{address:x}]')
+        self._server = ServerLogger(self._server)
 
         self._address = address
 
@@ -117,7 +149,7 @@ class Client:
                 return extra
             elif cmd == Command.LOG:
                 # 打印服务端日志
-                self._server.debug(f'{hexlify(extra)}')
+                self._server.log(extra)
             else:
                 self._client.warning(f'Unexpected response of {cmd}, expect: {expect}')
 

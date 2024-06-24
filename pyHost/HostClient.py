@@ -113,7 +113,7 @@ class Client:
             # 加密数据
             tag, extra = self._cipher.encrypt(extra)
         # 发送数据帧
-        await self._port.send(self._address, cmd.value, tag, extra)
+        self._port.send(self._address, cmd.value, tag, extra)
 
     async def recv_response(self, expect: Command) -> bytes:
         """接收响应
@@ -223,13 +223,14 @@ class Client:
         extra = self._get_prop(id, encrypt, np.uint8(access.value).tobytes())
         return np.frombuffer(extra, dtype=[dtype, dtype])[0]
 
-    async def set_prop(self, name: str, value: bytes, encrypt: bool = False) -> None:
+    async def set_prop(self, name: str, value: bytes, encrypt: bool = False, no_response=False) -> None:
         """设置属性值
 
         Args:
             name (str): 符号名
             value (bytes): 属性值
             encrypt (bool, optional): 是否加密. 默认值: False.
+            no_response (bool, optional): 是否无响应. 默认值: False.
         """
         # 数据类型转换
         if isinstance(value, bool):
@@ -242,8 +243,11 @@ class Client:
         self._client.info(f'Request: Set Prop[{name}]')
         # 获取属性 Id
         id = await self._get_id(name)
-        # 获取属性值
-        self._set_prop(id, value, encrypt)
+        # 设置属性值
+        if no_response:
+            await self._set_prop_no_response(id, value, encrypt)
+        else:
+            await self._set_prop(id, value, encrypt)
         self._client.info(f'End Request: Set Prop[{name}]')
 
     async def get_prop(self, name: str, encrypt: bool = False) -> bytes:
@@ -379,7 +383,7 @@ class Client:
         # 获取属性 Id
         id = await self._get_id(name)
         # 获取 Id
-        size = self._get_size(id, encrypt)
+        size = await self._get_size(id, encrypt)
         self._client.info(f'End Request: Get Size[{name}]')
         return size
 
@@ -407,7 +411,7 @@ class Client:
         """
         self._logger.unmask()
 
-    async def _get_symbols(self) -> AsyncGenerator[str, np.uint16]:
+    async def get_symbols(self) -> AsyncGenerator[str, np.uint16]:
         """获取符号表
 
         Returns:
@@ -423,11 +427,11 @@ class Client:
             extra = None
             try:
                 # 附加参数为目标属性的 id
-                extra = self._get_prop(0, extra=np.uint16(i).tobytes())
+                extra = await self._get_prop(0, extra=np.uint16(i).tobytes())
             except ValueError:
                 # 访问的变量需要权限
                 try:
-                    extra = self._get_prop(0, encrypt=True, extra=np.uint16(i).tobytes())
+                    extra = await self._get_prop(0, encrypt=True, extra=np.uint16(i).tobytes())
                 except ValueError:
                     self._client.warning(f'Id: {i} failed to fetch symbol')
                     continue
@@ -447,7 +451,7 @@ class Client:
             np.uint16: 属性 Id
         """
         if self._symbols is None:
-            async for _ in self._get_symbols():
+            async for _ in self.get_symbols():
                 pass
         return self._symbols[name]
 
@@ -470,6 +474,9 @@ class Client:
     async def _set_prop(self, id: np.uint16, extra: bytes, encrypt: bool = False) -> None:
         await self.send_request(Command.SET_PROPERTY, np.uint16(id).tobytes() + extra, encrypt)
         await self.recv_response(Command.SET_PROPERTY)
+
+    async def _set_prop_no_response(self, id: np.uint16, extra: bytes, encrypt: bool = False) -> None:
+        await self.send_request(Command.SET_PROPERTY, np.uint16(id).tobytes() + extra, encrypt)
 
     async def _get_size(self, id: np.uint16, encrypt: bool = False,) -> np.uint16:
         await self.send_request(Command.GET_SIZE, np.uint16(id).tobytes(), encrypt)

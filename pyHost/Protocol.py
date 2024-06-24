@@ -8,7 +8,7 @@ from PySide6.QtCore import *
 from PySide6.QtWidgets import *
 
 from pyHost.Logging import hexlify
-from pyHost import Types
+from pyHost.Cipher import AES_CCM_TAG_SIZE
 
 # 最大未处理帧数量
 UNHANDLED_FRAME_SIZE_MAX = 128
@@ -113,7 +113,7 @@ class Port(QObject):
             if size > 0:
                 # 接收 CEC-MAC
                 if encrypted:
-                    tag = bytearray(Types.AES_CCM_TAG_SIZE)
+                    tag = bytearray(AES_CCM_TAG_SIZE)
                     for i in range(len(tag)):
                         tag[i] = await self._read()
                 # 接收数据
@@ -146,7 +146,7 @@ class Port(QObject):
                     self._unhandled_frames.pop(0)
                 continue
 
-    async def close(self) -> None:
+    def close(self) -> None:
         """关闭端口
         """
         if self._ref > 0:

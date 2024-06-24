@@ -2,7 +2,6 @@ from Cryptodome.Cipher import AES
 from logging import Logger
 
 from pyHost.Logging import hexlify
-from pyHost import Types
 
 
 # AES 密钥长度 (字节)
@@ -50,7 +49,7 @@ class Cipher:
 
         # 执行加密
         self.logger.debug(f'Plaintext: {hexlify(data)}')
-        cipher = AES.new(self.key, mode=AES.MODE_CCM, nonce=self.nonce, mac_len=Types.AES_CCM_TAG_SIZE)
+        cipher = AES.new(self.key, mode=AES.MODE_CCM, nonce=self.nonce, mac_len=AES_CCM_TAG_SIZE)
         data, tag = cipher.encrypt_and_digest(data)
         self.logger.debug(f'Ciphertext: {hexlify(data)}')
         self.logger.debug(f'Tag: {hexlify(tag)}')
@@ -74,7 +73,7 @@ class Cipher:
         self.logger.debug(f'Tag: {hexlify(tag)}')
         self.logger.debug(f'Ciphertext: {hexlify(data)}')
         # 执行解密
-        cipher = AES.new(self.key, mode=AES.MODE_CCM, nonce=self.nonce, mac_len=Types.AES_CCM_TAG_SIZE)
+        cipher = AES.new(self.key, mode=AES.MODE_CCM, nonce=self.nonce, mac_len=AES_CCM_TAG_SIZE)
         data = cipher.decrypt_and_verify(data, tag)
         self.logger.debug(f'Plaintext: {hexlify(data)}')
         # 返回明文

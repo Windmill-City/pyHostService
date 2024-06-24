@@ -154,7 +154,7 @@ class Client:
             else:
                 self._client.warning(f'Unexpected response of {cmd}, expect: {expect}')
 
-    async def connect(self, timeout=5) -> None:
+    async def connect(self, timeout=1.5) -> None:
         """测试连通性
         """
         self._client.info('Connecting...')

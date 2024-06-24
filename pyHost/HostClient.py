@@ -18,7 +18,7 @@ class ServerLogger:
             self._logger.warning(f'Empty log data!')
             return
         # 日志等级
-        level = extra[0:1]
+        level = extra[0:1][0]
         try:
             level = LogLevel(level)
         except ValueError:
@@ -26,6 +26,7 @@ class ServerLogger:
             return
         # 日志内容
         log = extra[1:]
+        log = str(log, encoding='utf-8')
         match level:
             case LogLevel.VERBOSE:
                 self._logger.debug(log)
@@ -159,16 +160,12 @@ class Client:
         self._client.info('Connecting...')
         while timeout > 0:
             try:
-                self.mask()
                 async with asyncio.timeout(0.05):
                     await self.echo()
-                    self.unmask()
                     self._client.info('Connected!')
                     return
             except TimeoutError:
                 timeout -= 0.05
-            finally:
-                self.unmask()
         raise TimeoutError('Connect timeout!')
 
     async def echo(self, value: bytes = bytes(), encrypt: bool = False) -> bytes:

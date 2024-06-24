@@ -18,7 +18,7 @@ class ServerLogger:
             self._logger.warning(f'Empty log data!')
             return
         # 日志等级
-        level = extra[0:1][0]
+        level = extra[0]
         try:
             level = LogLevel(level)
         except ValueError:

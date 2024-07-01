@@ -205,24 +205,24 @@ class Port(QObject):
             if crc16(head) == 0:
                 return np.frombuffer(head[0:Header.itemsize], dtype=Header)[0]
 
+    @classmethod
+    def create(cls, logger: Logger, name: str, baudrate: int):
+        """创建通信端口
 
-def create_port(logger: Logger, name: str, baudrate: int) -> Port:
-    """创建通信端口
+        Args:
+            logger (Logger): 日志
+            name (str): 端口名
+            baudrate (int): 波特率
 
-    Args:
-        logger (Logger): 日志
-        name (str): 端口名
-        baudrate (int): 波特率
-
-    Returns:
-        Port: 通信端口实例
-    """
-    # 优先返回已有的实例
-    port: Port = Port.Ports.get(name, None)
-    if port is not None:
-        port._ref += 1
+        Returns:
+            Port: 通信端口实例
+        """
+        # 优先返回已有的实例
+        port: Port = Port.Ports.get(name, None)
+        if port is not None:
+            port._ref += 1
+            return port
+        # 创建端口
+        serial = Serial(name, baudrate=baudrate, timeout=0)
+        port = Port(logger, serial)
         return port
-    # 创建端口
-    serial = Serial(name, baudrate=baudrate, timeout=0)
-    port = Port(logger, serial)
-    return port

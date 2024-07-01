@@ -72,7 +72,7 @@ class Client:
         # 销毁旧端口
         self.close()
         # 创建新端口
-        self._port = Protocol.create_port(self._logger, name, baudrate)
+        self._port = Protocol.Port.create(self._logger, name, baudrate)
         self._port.aboutToClose.connect(_cleanup)
 
     def close(self) -> None:

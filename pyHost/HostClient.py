@@ -280,7 +280,7 @@ class Client:
         return extra
 
     async def get_mem(self, name: str, offset: np.uint16, size: np.uint16, encrypt: bool = False) -> AsyncGenerator[bytes, None]:
-        """读取内存(异步生成器)
+        """读取内存
 
         Args:
             name (str): 符号名
